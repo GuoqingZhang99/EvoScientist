@@ -9,6 +9,8 @@ from deepagents.backends import FilesystemBackend
 from deepagents.backends.filesystem import WriteResult, EditResult
 from deepagents.backends.protocol import (
     ExecuteResponse,
+    FileDownloadResponse,
+    FileUploadResponse,
     SandboxBackendProtocol,
 )
 
@@ -222,6 +224,30 @@ class MergedReadOnlyBackend:
 
     async def aedit(self, file_path: str, old_string: str, new_string: str, replace_all: bool = False) -> EditResult:
         return self.edit(file_path, old_string, new_string, replace_all)
+
+    # -- download / upload (required by BackendProtocol) --
+
+    def download_files(self, paths: list[str]) -> list[FileDownloadResponse]:
+        """Download files, trying primary then secondary."""
+        responses: list[FileDownloadResponse] = []
+        for path in paths:
+            resp = self._primary.download_files([path])[0]
+            if resp.error is not None:
+                resp = self._secondary.download_files([path])[0]
+            responses.append(resp)
+        return responses
+
+    async def adownload_files(self, paths: list[str]) -> list[FileDownloadResponse]:
+        return self.download_files(paths)
+
+    def upload_files(self, files: list[tuple[str, bytes]]) -> list[FileUploadResponse]:
+        return [
+            FileUploadResponse(path=path, error="permission_denied")
+            for path, _ in files
+        ]
+
+    async def aupload_files(self, files: list[tuple[str, bytes]]) -> list[FileUploadResponse]:
+        return self.upload_files(files)
 
 
 class CustomSandboxBackend(FilesystemBackend, SandboxBackendProtocol):

@@ -1,6 +1,6 @@
 [project]
 name = "EvoScientist"
-version = "0.1.0"
+version = "0.0.1"
 description = "EvoScientist: Towards Self-Evolving AI Scientists for End-to-End Scientific Discovery"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -49,4 +49,7 @@ build-backend = "setuptools.build_meta"
 include = ["EvoScientist*"]
 
 [tool.setuptools.package-data]
-EvoScientist = ["subagent.yaml"]
+EvoScientist = ["subagent.yaml", "skills/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

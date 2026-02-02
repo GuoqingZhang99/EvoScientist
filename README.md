@@ -9,11 +9,12 @@
 
 <a href="https://git.io/typing-svg"><img src="https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&width=435&lines=Towards+Self-Evolving+AI+Scientists+for+End-to-End+Scientific+Discovery" alt="Typing SVG" /></a>
 
-[![Project Page](https://img.shields.io/badge/Project-Page-4285F4?style=for-the-badge&logo=googlelens&logoColor=4285F4)]()
+[![PyPI](https://img.shields.io/badge/PyPI-EvoScientist%20v0.0.1-3da9fc?style=for-the-badge&logo=python&logoColor=3da9fc)](https://pypi.org/project/EvoScientist/)
+[![Project Page](https://img.shields.io/badge/Project-Page-ff8e3c?style=for-the-badge&logo=googlelens&logoColor=ff8e3c)]()
 [![arXiv](https://img.shields.io/badge/arXiv-xxxx.xxxx-b31b1b?style=for-the-badge&logo=arxiv&logoColor=b31b1b)]()
-[![Gradio Demo](https://img.shields.io/badge/Gradio-Online_Demo-FFCC00?style=for-the-badge&logo=gradio&logoColor=yellow&labelColor=grey)]()
-[![Evaluation Split](https://img.shields.io/badge/HF-Test_Dataset-AECBFA?style=for-the-badge&logo=huggingface&logoColor=FFCC00&labelColor=grey)]()
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)]()
+<!-- [![Gradio Demo](https://img.shields.io/badge/Gradio-Online_Demo-FFCC00?style=for-the-badge&logo=gradio&logoColor=yellow&labelColor=grey)]()
+[![Evaluation Split](https://img.shields.io/badge/HF-Test_Dataset-AECBFA?style=for-the-badge&logo=huggingface&logoColor=FFCC00&labelColor=grey)]() -->
 
 </div>
 

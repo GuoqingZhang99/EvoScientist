@@ -21,7 +21,7 @@ from deepagents import create_deep_agent
 from deepagents.backends import FilesystemBackend, CompositeBackend
 from langchain.chat_models import init_chat_model
 
-from .backends import CustomSandboxBackend, ReadOnlyFilesystemBackend
+from .backends import CustomSandboxBackend, MergedReadOnlyBackend
 from .middleware import create_skills_middleware
 from .prompts import RESEARCHER_INSTRUCTIONS, get_system_prompt
 from .utils import load_subagents
@@ -40,7 +40,7 @@ MAX_ITERATIONS = 3  # Max delegation rounds
 
 # Workspace settings
 WORKSPACE_DIR = "./workspace/"
-SKILLS_DIR = "./skills/"
+SKILLS_DIR = str(Path(__file__).parent / "skills")
 SUBAGENTS_CONFIG = Path(__file__).parent / "subagent.yaml"
 
 # =============================================================================
@@ -76,10 +76,10 @@ else:
         virtual_mode=True,
     )
 
-# Skills backend: read-only access to ./skills/
-_skills_backend = ReadOnlyFilesystemBackend(
-    root_dir=SKILLS_DIR,
-    virtual_mode=True,
+# Skills backend: merge user-installed (workspace) and system (package) skills
+_skills_backend = MergedReadOnlyBackend(
+    primary_dir=str(Path(WORKSPACE_DIR) / "skills"),   # user-installed, takes priority
+    secondary_dir=SKILLS_DIR,                           # package built-in, fallback
 )
 
 # Composite backend: workspace as default, skills mounted at /skills/
@@ -134,9 +134,9 @@ def create_cli_agent(workspace_dir: str | None = None):
             virtual_mode=True,
             timeout=300,
         )
-        sk_backend = ReadOnlyFilesystemBackend(
-            root_dir=SKILLS_DIR,
-            virtual_mode=True,
+        sk_backend = MergedReadOnlyBackend(
+            primary_dir=str(Path(workspace_dir) / "skills"),
+            secondary_dir=SKILLS_DIR,
         )
         be = CompositeBackend(
             default=ws_backend,
