@@ -29,6 +29,7 @@
 
 ## 📖 Contents
 - [⛏️ Installation](#️-installation)
+- [🔑 API Key Configuration](#-api-key-configuration)
 - [⚡ Quick Start](#-quick-start)
   - [CLI Inference](#cli-inference)
   - [Script Inference](#script-inference)
@@ -73,6 +74,42 @@ uv pip install -e .
 ```
 
 </details>
+
+## 🔑 API Key Configuration
+
+EvoScientist requires API keys for LLM inference and web search. You can configure them in two ways:
+
+### Option A: Environment Variables (Global)
+
+Set keys directly in your terminal session. Add these to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to persist across sessions:
+
+```Shell
+export ANTHROPIC_API_KEY="your_anthropic_api_key_here"
+export TAVILY_API_KEY="your_tavily_api_key_here"
+```
+
+### Option B: `.env` File (Project-level)
+
+Create a `.env` file in the project root. This keeps keys scoped to the project and out of your shell history:
+
+```Shell
+cp .env.example .env
+```
+
+Then edit `.env` and fill in your keys:
+
+```
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+TAVILY_API_KEY=your_tavily_api_key_here
+```
+
+> [!WARNING]
+> Never commit `.env` files containing real API keys to version control. The `.env` file is already included in `.gitignore`.
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key for Claude ([console.anthropic.com](https://console.anthropic.com/)) |
+| `TAVILY_API_KEY` | Yes | Tavily API key for web search ([app.tavily.com](https://app.tavily.com/)) |
 
 ## ⚡ Quick Start
 
