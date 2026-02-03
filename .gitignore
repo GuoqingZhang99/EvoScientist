@@ -27,6 +27,8 @@ venv/
 # Project specific
 .langgraph_api/
 workspace/
+skills/
+memory/
 .deno_cache/
 *test.ipynb
 *CLAUDE.md

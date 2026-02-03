@@ -40,7 +40,7 @@ MAX_ITERATIONS = 3  # Max delegation rounds
 
 # Workspace settings
 WORKSPACE_DIR = "./workspace/"
-MEMORY_DIR = "./workspace/memory/"  # Shared across sessions (not per-session)
+MEMORY_DIR = "./memory/"  # Shared across sessions (not per-session)
 SKILLS_DIR = str(Path(__file__).parent / "skills")
 SUBAGENTS_CONFIG = Path(__file__).parent / "subagent.yaml"
 
@@ -79,7 +79,7 @@ else:
 
 # Skills backend: merge user-installed (workspace) and system (package) skills
 _skills_backend = MergedReadOnlyBackend(
-    primary_dir=str(Path(WORKSPACE_DIR) / "skills"),   # user-installed, takes priority
+    primary_dir="./skills/",                             # user-installed, takes priority
     secondary_dir=SKILLS_DIR,                           # package built-in, fallback
 )
 
@@ -122,7 +122,7 @@ _AGENT_KWARGS = dict(
     subagents=subagents,
     middleware=[
         create_memory_middleware(MEMORY_DIR, extraction_model=chat_model),
-        create_skills_middleware(SKILLS_DIR, WORKSPACE_DIR),
+        create_skills_middleware(SKILLS_DIR, "."),
     ],
     system_prompt=SYSTEM_PROMPT,
 )
@@ -148,7 +148,7 @@ def create_cli_agent(workspace_dir: str | None = None):
             timeout=300,
         )
         sk_backend = MergedReadOnlyBackend(
-            primary_dir=str(Path(workspace_dir) / "skills"),
+            primary_dir="./skills/",
             secondary_dir=SKILLS_DIR,
         )
         # Memory always uses SHARED directory (not per-session) for cross-session persistence
@@ -165,7 +165,7 @@ def create_cli_agent(workspace_dir: str | None = None):
         )
         mw = [
             create_memory_middleware(MEMORY_DIR, extraction_model=chat_model),
-            create_skills_middleware(SKILLS_DIR, workspace_dir),
+            create_skills_middleware(SKILLS_DIR, "."),
         ]
         kwargs = dict(
             _AGENT_KWARGS,
