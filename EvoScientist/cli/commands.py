@@ -11,7 +11,7 @@ import typer  # type: ignore[import-untyped]
 from rich.table import Table
 
 from ..stream.display import console
-from ..paths import ensure_dirs, default_workspace_dir
+from ..paths import ensure_dirs
 from ._app import app, config_app, mcp_app
 from .agent import _deduplicate_run_name, _create_session_workspace, _load_agent
 from .mcp_ui import (
@@ -353,13 +353,12 @@ def _main_callback(
         if not re.fullmatch(r"[A-Za-z0-9_-]+", name):
             raise typer.BadParameter("--name may only contain letters, digits, hyphens, and underscores")
 
-    ensure_dirs()
-
     # Resolve effective mode from config (CLI mode already applied via overrides)
     effective_mode: str | None = None  # None means explicit --workdir/--use-cwd was used
 
     # Resolve workspace directory for this session
-    # Priority: --use-cwd > --workdir > --mode (explicit) > default_workdir > default_mode
+    # Priority: --workdir > --mode (explicit) > default_workdir > default_mode > cwd
+    # --use-cwd is kept for backward compat but is now the default behavior
     if use_cwd:
         workspace_dir = os.getcwd()
         workspace_fixed = True
@@ -370,7 +369,7 @@ def _main_callback(
     elif mode:
         # Explicit --mode overrides default_workdir
         effective_mode = mode
-        workspace_root = config.default_workdir or str(default_workspace_dir())
+        workspace_root = config.default_workdir or os.getcwd()
         workspace_root = os.path.abspath(os.path.expanduser(workspace_root))
         if effective_mode == "run":
             runs_dir = Path(workspace_root, "runs")
@@ -380,7 +379,6 @@ def _main_callback(
             workspace_fixed = False
         else:  # daemon
             workspace_dir = workspace_root
-            os.makedirs(workspace_dir, exist_ok=True)
             workspace_fixed = True
     elif config.default_workdir:
         # Use configured default workdir with configured mode
@@ -394,17 +392,18 @@ def _main_callback(
             workspace_fixed = False
         else:  # daemon
             workspace_dir = workspace_root
-            os.makedirs(workspace_dir, exist_ok=True)
             workspace_fixed = True
     else:
         effective_mode = config.default_mode
         if effective_mode == "run":
             workspace_dir = _create_session_workspace(name)
             workspace_fixed = False
-        else:  # daemon mode (default)
-            workspace_dir = str(default_workspace_dir())
-            os.makedirs(workspace_dir, exist_ok=True)
+        else:  # daemon mode (default) — use current directory
+            workspace_dir = os.getcwd()
             workspace_fixed = True
+
+    # Ensure memory and skills subdirs exist in workspace
+    ensure_dirs()
 
     if prompt:
         # Single-shot mode: wrap in persistent checkpointer

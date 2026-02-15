@@ -47,8 +47,7 @@ apply_config_to_env(_config)
 MAX_CONCURRENT = _config.max_concurrent
 MAX_ITERATIONS = _config.max_iterations
 
-# Workspace settings
-ensure_dirs()
+# Workspace settings (defer dir creation to CLI; here we just resolve paths)
 WORKSPACE_DIR = str(default_workspace_dir())
 set_active_workspace(WORKSPACE_DIR)
 MEMORY_DIR = str(_MEMORY_DIR_PATH)  # Shared across sessions (not per-session)
