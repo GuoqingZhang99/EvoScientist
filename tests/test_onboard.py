@@ -283,6 +283,45 @@ class TestStepWorkspace:
         assert result == ("run", "/custom/path")
 
 
+class TestPromptAndValidateApiKey:
+    def test_keep_existing_key_still_validates(self):
+        """Pressing Enter to keep current key should validate the existing key."""
+        from EvoScientist.config.onboard import _prompt_and_validate_api_key
+
+        validate_fn = Mock(return_value=(True, "Valid"))
+
+        with patch("EvoScientist.config.onboard.questionary") as mock_q, \
+             patch("EvoScientist.config.onboard.console"):
+            mock_q.password.return_value.ask.return_value = ""  # keep existing
+            result = _prompt_and_validate_api_key(
+                "Enter key:",
+                current="existing-key",
+                validate_fn=validate_fn,
+                skip_validation=False,
+            )
+
+        assert result is None  # None means "keep existing, don't overwrite"
+        validate_fn.assert_called_once_with("existing-key")
+
+    def test_new_key_still_validates(self):
+        """Entering a new key should still run validation."""
+        from EvoScientist.config.onboard import _prompt_and_validate_api_key
+
+        validate_fn = Mock(return_value=(True, "valid"))
+
+        with patch("EvoScientist.config.onboard.questionary") as mock_q:
+            mock_q.password.return_value.ask.return_value = "new-key"
+            result = _prompt_and_validate_api_key(
+                "Enter key:",
+                current="old-key",
+                validate_fn=validate_fn,
+                skip_validation=False,
+            )
+
+        assert result == "new-key"
+        validate_fn.assert_called_once_with("new-key")
+
+
 class TestValidateImessage:
     def test_valid_when_cli_found_with_rpc(self):
         """Test validate_imessage returns valid when imsg CLI found and RPC works."""

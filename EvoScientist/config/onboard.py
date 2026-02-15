@@ -429,7 +429,9 @@ def _prompt_and_validate_api_key(
         raise KeyboardInterrupt()
 
     new_key = new_key.strip()
-    key_to_validate = new_key if new_key else current
+
+    # Determine which key to validate: new input or existing
+    key_to_validate = new_key or current
 
     if not key_to_validate:
         return None
@@ -443,6 +445,7 @@ def _prompt_and_validate_api_key(
         else:
             console.print(f"\r  [red]\u2717 {msg}[/red]      ")
             if not new_key:
+                # Existing key is invalid — warn but keep (user didn't change it)
                 return None
             save_anyway = questionary.confirm(
                 "Save anyway?",

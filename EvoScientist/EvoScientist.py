@@ -13,6 +13,7 @@ Usage:
         ...
 """
 
+import json
 from datetime import datetime
 from pathlib import Path
 
@@ -27,12 +28,8 @@ from .middleware import create_memory_middleware
 from .prompts import RESEARCHER_INSTRUCTIONS, get_system_prompt
 from .utils import load_subagents
 from .tools import tavily_search, think_tool, skill_manager
-from .paths import (
-    default_workspace_dir,
-    set_active_workspace,
-    MEMORY_DIR as _MEMORY_DIR_PATH,
-    USER_SKILLS_DIR as _USER_SKILLS_DIR_PATH,
-)
+from . import paths as _paths_mod
+from .paths import set_active_workspace, set_workspace_root
 
 # =============================================================================
 # Configuration
@@ -42,16 +39,25 @@ from .paths import (
 _config = get_effective_config()
 apply_config_to_env(_config)
 
+# NOTE: We intentionally do NOT call set_workspace_root() at module level.
+# The CLI (commands.py) calls set_workspace_root() *before* importing this
+# module.  A module-level call here would overwrite the CLI's --workdir
+# value with config.default_workdir, violating the priority chain
+# (CLI args > config file).  Instead, config.default_workdir is applied
+# as a fallback inside create_cli_agent() when no explicit workspace_dir
+# is provided.
+
 # Research limits (from config)
 MAX_CONCURRENT = _config.max_concurrent
 MAX_ITERATIONS = _config.max_iterations
 
 # Workspace settings (defer dir creation to CLI; here we just resolve paths)
-WORKSPACE_DIR = str(default_workspace_dir())
+# Read from the paths module so values reflect any earlier set_workspace_root().
+WORKSPACE_DIR = str(_paths_mod.WORKSPACE_ROOT)
 set_active_workspace(WORKSPACE_DIR)
-MEMORY_DIR = str(_MEMORY_DIR_PATH)  # Shared across sessions (not per-session)
+MEMORY_DIR = str(_paths_mod.MEMORY_DIR)  # Shared across sessions (not per-session)
 SKILLS_DIR = str(Path(__file__).parent / "skills")
-USER_SKILLS_DIR = str(_USER_SKILLS_DIR_PATH)
+USER_SKILLS_DIR = str(_paths_mod.USER_SKILLS_DIR)
 SUBAGENTS_CONFIG = Path(__file__).parent / "subagent.yaml"
 
 # =============================================================================
@@ -109,6 +115,44 @@ tool_registry = {
 # Base tools that every agent variant gets (before MCP)
 BASE_TOOLS = [think_tool, skill_manager]
 
+# Cache MCP tools by the effective config signature to avoid reconnecting
+# to MCP servers on every `/new` when config is unchanged.
+_MCP_TOOLS_CACHE_KEY: str | None = None
+_MCP_TOOLS_CACHE_VALUE: dict[str, list] | None = None
+
+
+def _mcp_config_signature() -> str:
+    """Return a stable signature for the effective MCP config."""
+    from .mcp.client import load_mcp_config
+
+    cfg = load_mcp_config()
+    if not cfg:
+        return ""
+    try:
+        return json.dumps(cfg, sort_keys=True, ensure_ascii=True)
+    except TypeError:
+        # Fallback for non-JSON-serializable values (should be rare)
+        return repr(cfg)
+
+
+def _load_mcp_tools_cached() -> dict[str, list]:
+    """Load MCP tools with config-aware caching."""
+    global _MCP_TOOLS_CACHE_KEY, _MCP_TOOLS_CACHE_VALUE
+
+    cfg_key = _mcp_config_signature()
+    if not cfg_key:
+        _MCP_TOOLS_CACHE_KEY = ""
+        _MCP_TOOLS_CACHE_VALUE = {}
+        return {}
+
+    if _MCP_TOOLS_CACHE_KEY == cfg_key and _MCP_TOOLS_CACHE_VALUE is not None:
+        return {k: list(v) for k, v in _MCP_TOOLS_CACHE_VALUE.items()}
+
+    loaded = load_mcp_tools()
+    _MCP_TOOLS_CACHE_KEY = cfg_key
+    _MCP_TOOLS_CACHE_VALUE = {k: list(v) for k, v in loaded.items()}
+    return {k: list(v) for k, v in loaded.items()}
+
 
 def _build_base_kwargs(base_backend, base_middleware):
     """Build agent kwargs *without* MCP (fast, no subprocess spawning)."""
@@ -130,12 +174,12 @@ def _build_base_kwargs(base_backend, base_middleware):
 
 
 def load_mcp_and_build_kwargs(base_backend, base_middleware):
-    """(Re-)load MCP tools and build agent kwargs.
+    """Load MCP tools (cached by config) and build agent kwargs.
 
-    Called on every ``create_cli_agent()`` call so that ``/new`` picks up
-    MCP config changes. Falls back to base kwargs if no MCP configured.
+    Re-connects to MCP servers only when the effective MCP config changes.
+    Falls back to base kwargs if no MCP configured.
     """
-    mcp_by_agent = load_mcp_tools()
+    mcp_by_agent = _load_mcp_tools_cached()
     if not mcp_by_agent:
         return _build_base_kwargs(base_backend, base_middleware)
 
@@ -214,19 +258,27 @@ def create_cli_agent(workspace_dir: str | None = None, checkpointer=None):
         checkpointer: Optional LangGraph checkpointer. If ``None``,
             falls back to ``InMemorySaver`` (non-persistent).
     """
+    import os as _os
     from . import paths as _paths
 
     if checkpointer is None:
         from langgraph.checkpoint.memory import InMemorySaver  # type: ignore[import-untyped]
         checkpointer = InMemorySaver()
 
+    # When no explicit workspace_dir is provided, apply config.default_workdir
+    # as a fallback.  This covers direct callers (notebooks, iMessage server)
+    # that never call set_workspace_root() themselves.  CLI callers always
+    # pass workspace_dir explicitly, so their --workdir is never overwritten.
+    if workspace_dir is None:
+        if _config.default_workdir:
+            set_workspace_root(
+                _os.path.abspath(_os.path.expanduser(_config.default_workdir))
+            )
+        workspace_dir = str(_paths.WORKSPACE_ROOT)
+
     # Read paths dynamically so runtime set_workspace_root() changes are picked up
     _mem_dir = str(_paths.MEMORY_DIR)
     _usr_skills_dir = str(_paths.USER_SKILLS_DIR)
-
-    # Default to current WORKSPACE_ROOT when no explicit dir is provided
-    if workspace_dir is None:
-        workspace_dir = str(_paths.WORKSPACE_ROOT)
 
     # Always construct fresh backends from current paths (avoids stale
     # module-level backend when workspace root changed at runtime).
