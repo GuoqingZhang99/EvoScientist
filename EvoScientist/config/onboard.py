@@ -1313,13 +1313,14 @@ def _step_channels(config: EvoScientistConfig) -> dict[str, object]:
     if getattr(config, "imessage_enabled", False) and "imessage" not in _currently_enabled:
         _currently_enabled.add("imessage")
 
-    # Channel definitions: (value, display_name, required_fields)
+    # Channel definitions: (value, display_name, required_fields, import_check, pip_extra)
+    # import_check: module name to try importing; None = no check needed
     _CHANNELS = [
-        ("telegram",  "Telegram",  [("telegram_bot_token", "Bot token (from @BotFather)")]),
-        ("discord",   "Discord",   [("discord_bot_token", "Bot token")]),
-        ("slack",     "Slack",     [("slack_bot_token", "Bot token (xoxb-...)"), ("slack_app_token", "App token for Socket Mode (xapp-...)")]),
-        ("wechat",    "WeChat",    [("wechat_wecom_corp_id", "WeCom Corp ID"), ("wechat_wecom_agent_id", "WeCom Agent ID"), ("wechat_wecom_secret", "WeCom Secret")]),
-        ("imessage",  "iMessage",  []),  # handled via _setup_imessage()
+        ("telegram",  "Telegram",  [("telegram_bot_token", "Bot token (from @BotFather)")], "telegram", "telegram"),
+        ("discord",   "Discord",   [("discord_bot_token", "Bot token")], "discord", "discord"),
+        ("slack",     "Slack",     [("slack_bot_token", "Bot token (xoxb-...)"), ("slack_app_token", "App token for Socket Mode (xapp-...)")], "slack_sdk", "slack"),
+        ("wechat",    "WeChat",    [("wechat_wecom_corp_id", "WeCom Corp ID"), ("wechat_wecom_agent_id", "WeCom Agent ID"), ("wechat_wecom_secret", "WeCom Secret")], "aiohttp", "wechat"),
+        ("imessage",  "iMessage",  [], None, None),  # handled via _setup_imessage()
     ]
 
     choices = [
@@ -1328,7 +1329,7 @@ def _step_channels(config: EvoScientistConfig) -> dict[str, object]:
             value=value,
             checked=value in _currently_enabled,
         )
-        for value, display, _ in _CHANNELS
+        for value, display, *_ in _CHANNELS
     ]
 
     selected = questionary.checkbox(
@@ -1349,13 +1350,23 @@ def _step_channels(config: EvoScientistConfig) -> dict[str, object]:
         return updates
 
     # Build a lookup for channel definitions
-    _ch_lookup = {v: (v, d, fields) for v, d, fields in _CHANNELS}
+    _ch_lookup = {v: (v, d, fields, imp, extra) for v, d, fields, imp, extra in _CHANNELS}
 
     enabled_channels: list[str] = []
 
     for ch_name in selected:
-        _, display, required_fields = _ch_lookup[ch_name]
+        _, display, required_fields, import_check, pip_extra = _ch_lookup[ch_name]
         console.print(f"\n  [bold cyan]── {display} ──[/bold cyan]")
+
+        # Check pip dependency before proceeding
+        if import_check:
+            try:
+                __import__(import_check)
+            except ImportError:
+                console.print("  [yellow]✗ Required package not installed.[/yellow]")
+                console.print(f"  [dim]Run:[/dim] pip install evoscientist\\[{pip_extra}]")
+                console.print("  [dim]Then re-run:[/dim] EvoSci onboard")
+                continue
 
         # Special handling for iMessage
         if ch_name == "imessage":
