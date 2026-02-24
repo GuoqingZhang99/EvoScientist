@@ -307,6 +307,35 @@ def validate_tavily_key(api_key: str) -> tuple[bool, str]:
         return False, f"Error: {e}"
 
 
+def validate_ollama_connection(base_url: str) -> tuple[bool, str, list[str]]:
+    """Validate that Ollama is reachable at the given base URL.
+
+    Args:
+        base_url: The Ollama server base URL.
+
+    Returns:
+        Tuple of (is_valid, message, model_names).
+        model_names is a list of pulled model names (empty if unreachable).
+    """
+    if not base_url:
+        return True, "Skipped (no URL provided)", []
+
+    try:
+        import httpx
+        resp = httpx.get(f"{base_url.rstrip('/')}/api/tags", timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            models = data.get("models", [])
+            names = [m.get("name", "?") for m in models]
+            if names:
+                preview = ", ".join(names[:5])
+                return True, f"Connected — {len(names)} model(s): {preview}", names
+            return True, "Connected (no models pulled yet)", []
+        return False, f"HTTP {resp.status_code}", []
+    except Exception as e:
+        return False, f"Cannot reach Ollama: {e}", []
+
+
 # =============================================================================
 # Display Helpers
 # =============================================================================
@@ -396,11 +425,12 @@ def _step_provider(config: EvoScientistConfig) -> str:
         Choice(title="NVIDIA (DeepSeek, Kimi, GLM, MiniMax, Step, etc.)", value="nvidia"),
         Choice(title="SiliconFlow (third party)", value="siliconflow"),
         Choice(title="OpenRouter (third party)", value="openrouter"),
+        Choice(title="Ollama (local models)", value="ollama"),
         Choice(title="Other (OpenAI-compatible)", value="custom"),
     ]
 
     # Set default based on current config
-    default = config.provider if config.provider in ["anthropic", "openai", "google-genai", "nvidia", "siliconflow", "openrouter", "custom"] else "anthropic"
+    default = config.provider if config.provider in ["anthropic", "openai", "google-genai", "nvidia", "siliconflow", "openrouter", "ollama", "custom"] else "anthropic"
 
     provider = questionary.select(
         "Select your LLM provider:",
@@ -426,6 +456,7 @@ def _provider_key_info(config: EvoScientistConfig, provider: str):
         "siliconflow":  ("SiliconFlow",  config.siliconflow_api_key  or os.environ.get("SILICONFLOW_API_KEY", ""),  validate_siliconflow_key),
         "openrouter":   ("OpenRouter",   config.openrouter_api_key   or os.environ.get("OPENROUTER_API_KEY", ""),   validate_openrouter_key),
         "custom":       ("Custom",       config.custom_api_key       or os.environ.get("CUSTOM_API_KEY", ""),       None),
+        "ollama":       ("Ollama",       "__no_key__",                                                                None),
     }
     return mapping.get(provider, ("OpenAI", config.openai_api_key or os.environ.get("OPENAI_API_KEY", ""), validate_openai_key))
 
@@ -551,16 +582,102 @@ def _step_base_url(config: EvoScientistConfig) -> str:
     return url.strip()
 
 
-def _step_model(config: EvoScientistConfig, provider: str) -> str:
+def _step_ollama_base_url(config: EvoScientistConfig) -> tuple[str, list[str]]:
+    """Prompt for Ollama server base URL and validate connection.
+
+    Args:
+        config: Current configuration.
+
+    Returns:
+        Tuple of (base_url, detected_model_names).
+    """
+    current = config.ollama_base_url or os.environ.get("OLLAMA_BASE_URL", "")
+    default = current if current else "http://localhost:11434"
+
+    url = questionary.text(
+        f"Ollama base URL (Enter for {default}):",
+        default=default,
+        style=WIZARD_STYLE,
+        qmark=QMARK,
+    ).ask()
+    if url is None:
+        raise KeyboardInterrupt()
+    url = url.strip()
+
+    detected_models: list[str] = []
+    if url:
+        console.print("  [dim]Checking Ollama connection...[/dim]", end="")
+        valid, msg, detected_models = validate_ollama_connection(url)
+        if valid:
+            console.print(f"\r  [green]\u2713 {msg}[/green]      ")
+        else:
+            console.print(f"\r  [yellow]\u2717 {msg}[/yellow]      ")
+            console.print("  [dim]You can start Ollama later and it will work.[/dim]")
+
+    return url, detected_models
+
+
+def _step_model(
+    config: EvoScientistConfig,
+    provider: str,
+    *,
+    ollama_detected_models: list[str] | None = None,
+) -> str:
     """Step 3: Select model for the provider.
 
     Args:
         config: Current configuration.
         provider: Selected provider name.
+        ollama_detected_models: Model names detected from a live Ollama server.
 
     Returns:
         Selected model name.
     """
+    # Ollama: show only what's actually pulled on the server
+    if provider == "ollama":
+        if ollama_detected_models:
+            _CUSTOM_SENTINEL = "__custom__"
+            choices = [
+                Choice(title=name, value=name)
+                for name in ollama_detected_models
+            ]
+            choices.append(Choice(title="Type a model name...", value=_CUSTOM_SENTINEL))
+
+            default = ollama_detected_models[0]
+            if config.model in ollama_detected_models:
+                default = config.model
+
+            selected = questionary.select(
+                "Select model:",
+                choices=choices,
+                default=default,
+                style=WIZARD_STYLE,
+                qmark=QMARK,
+                use_indicator=True,
+            ).ask()
+            if selected is None:
+                raise KeyboardInterrupt()
+
+            if selected != _CUSTOM_SENTINEL:
+                return selected
+
+        # No detected models (server down or empty) — direct text input
+        if not ollama_detected_models:
+            console.print("  [dim]No models detected — type the model name you plan to pull.[/dim]")
+        model = questionary.text(
+            "Model name:",
+            style=WIZARD_STYLE,
+            qmark=QMARK,
+            placeholder=FormattedText([("fg:#858585", " e.g. qwen3-coder-next")]),
+        ).ask()
+        if model is None:
+            raise KeyboardInterrupt()
+        model = model.strip()
+        if not model:
+            model = "qwen3-coder-next"
+            console.print(f"  [dim]Using default: {model}[/dim]")
+        return model
+
     # Third-party providers: select from examples or type custom model name
     if provider in _THIRD_PARTY_EXAMPLES:
         examples = _THIRD_PARTY_EXAMPLES[provider]
@@ -1698,48 +1815,53 @@ def run_onboard(skip_validation: bool = False) -> bool:
         provider = _step_provider(config)
         config.provider = provider
 
-        # Step 2a: Base URL (custom provider only)
+        # Step 2a: Base URL (custom or ollama provider)
+        ollama_detected_models: list[str] = []
         if provider == "custom":
             base_url = _step_base_url(config)
             config.custom_base_url = base_url
+        elif provider == "ollama":
+            ollama_url, ollama_detected_models = _step_ollama_base_url(config)
+            config.ollama_base_url = ollama_url
 
-        # Step 2b: Provider API Key
-        new_key = _step_provider_api_key(config, provider, skip_validation)
-        if new_key is not None:
-            if provider == "anthropic":
-                config.anthropic_api_key = new_key
-            elif provider == "nvidia":
-                config.nvidia_api_key = new_key
-            elif provider == "google-genai":
-                config.google_api_key = new_key
-            elif provider == "siliconflow":
-                config.siliconflow_api_key = new_key
-            elif provider == "openrouter":
-                config.openrouter_api_key = new_key
-            elif provider == "custom":
-                config.custom_api_key = new_key
+        # Step 2b: Provider API Key (skip for Ollama — no key needed)
+        if provider != "ollama":
+            new_key = _step_provider_api_key(config, provider, skip_validation)
+            if new_key is not None:
+                if provider == "anthropic":
+                    config.anthropic_api_key = new_key
+                elif provider == "nvidia":
+                    config.nvidia_api_key = new_key
+                elif provider == "google-genai":
+                    config.google_api_key = new_key
+                elif provider == "siliconflow":
+                    config.siliconflow_api_key = new_key
+                elif provider == "openrouter":
+                    config.openrouter_api_key = new_key
+                elif provider == "custom":
+                    config.custom_api_key = new_key
+                else:
+                    config.openai_api_key = new_key
             else:
-                config.openai_api_key = new_key
-        else:
-            if provider == "anthropic":
-                current = config.anthropic_api_key
-            elif provider == "nvidia":
-                current = config.nvidia_api_key
-            elif provider == "google-genai":
-                current = config.google_api_key
-            elif provider == "siliconflow":
-                current = config.siliconflow_api_key
-            elif provider == "openrouter":
-                current = config.openrouter_api_key
-            elif provider == "custom":
-                current = config.custom_api_key
-            else:
-                current = config.openai_api_key
-            if not current:
-                _print_step_skipped("API Key", "not set")
+                if provider == "anthropic":
+                    current = config.anthropic_api_key
+                elif provider == "nvidia":
+                    current = config.nvidia_api_key
+                elif provider == "google-genai":
+                    current = config.google_api_key
+                elif provider == "siliconflow":
+                    current = config.siliconflow_api_key
+                elif provider == "openrouter":
+                    current = config.openrouter_api_key
+                elif provider == "custom":
+                    current = config.custom_api_key
+                else:
+                    current = config.openai_api_key
+                if not current:
+                    _print_step_skipped("API Key", "not set")
 
         # Step 3: Model
-        model = _step_model(config, provider)
+        model = _step_model(config, provider, ollama_detected_models=ollama_detected_models)
         config.model = model
 
         # Step 4: Tavily Key

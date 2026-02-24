@@ -231,3 +231,76 @@ class TestGetChatModel:
         call_kwargs = mock_init.call_args[1]
         assert call_kwargs["model_provider"] == "anthropic"
 
+
+# =============================================================================
+# Test Ollama provider
+# =============================================================================
+
+
+class TestOllamaProvider:
+    """Ollama models are not in the static registry (detected dynamically).
+    All tests use explicit provider or ollama: prefix."""
+
+    @patch("EvoScientist.llm.models.init_chat_model")
+    def test_explicit_provider(self, mock_init):
+        """Test that explicit provider='ollama' routes correctly."""
+        mock_init.return_value = "mock_model"
+
+        get_chat_model("llama3.1:8b", provider="ollama")
+
+        call_kwargs = mock_init.call_args[1]
+        assert call_kwargs["model"] == "llama3.1:8b"
+        assert call_kwargs["model_provider"] == "ollama"
+
+    @patch("EvoScientist.llm.models.init_chat_model")
+    def test_ollama_base_url_passthrough(self, mock_init, monkeypatch):
+        """Test that OLLAMA_BASE_URL env var is passed to kwargs."""
+        mock_init.return_value = "mock_model"
+        monkeypatch.setenv("OLLAMA_BASE_URL", "http://gpu-cluster:11434")
+
+        get_chat_model("llama3.1:8b", provider="ollama")
+
+        call_kwargs = mock_init.call_args[1]
+        assert call_kwargs["base_url"] == "http://gpu-cluster:11434"
+        assert call_kwargs["model_provider"] == "ollama"
+
+    @patch("EvoScientist.llm.models.init_chat_model")
+    def test_ollama_no_base_url_when_unset(self, mock_init, monkeypatch):
+        """Test that base_url is not set when OLLAMA_BASE_URL is empty."""
+        mock_init.return_value = "mock_model"
+        monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+
+        get_chat_model("llama3.1:8b", provider="ollama")
+
+        call_kwargs = mock_init.call_args[1]
+        assert "base_url" not in call_kwargs
+
+    @patch("EvoScientist.llm.models.init_chat_model")
+    def test_no_thinking_for_ollama(self, mock_init, monkeypatch):
+        """Test that thinking/reasoning is not auto-enabled for Ollama models."""
+        mock_init.return_value = "mock_model"
+        monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+
+        get_chat_model("llama3.1:8b", provider="ollama")
+
+        call_kwargs = mock_init.call_args[1]
+        assert "thinking" not in call_kwargs
+        assert "reasoning" not in call_kwargs
+
+    def test_no_static_registry_entries(self):
+        """Test that Ollama has no static registry entries (models detected dynamically)."""
+        ollama_models = get_models_for_provider("ollama")
+        assert len(ollama_models) == 0
+
+    @patch("EvoScientist.llm.models.init_chat_model")
+    def test_ollama_prefix_inference(self, mock_init, monkeypatch):
+        """Test that ollama: prefix infers ollama provider."""
+        mock_init.return_value = "mock_model"
+        monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+
+        get_chat_model("ollama:phi3:mini")
+
+        call_kwargs = mock_init.call_args[1]
+        assert call_kwargs["model"] == "phi3:mini"
+        assert call_kwargs["model_provider"] == "ollama"
+

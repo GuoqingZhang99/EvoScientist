@@ -67,6 +67,7 @@ class EvoScientistConfig:
     openrouter_api_key: str = ""
     custom_api_key: str = ""
     custom_base_url: str = ""
+    ollama_base_url: str = ""
     tavily_api_key: str = ""
 
     # LLM Settings
@@ -329,6 +330,7 @@ _ENV_MAPPINGS = {
     "openrouter_api_key": "OPENROUTER_API_KEY",
     "custom_api_key": "CUSTOM_API_KEY",
     "custom_base_url": "CUSTOM_BASE_URL",
+    "ollama_base_url": "OLLAMA_BASE_URL",
     "tavily_api_key": "TAVILY_API_KEY",
     "default_mode": "EVOSCIENTIST_DEFAULT_MODE",
     "default_workdir": "EVOSCIENTIST_WORKSPACE_DIR",
@@ -399,5 +401,7 @@ def apply_config_to_env(config: EvoScientistConfig) -> None:
         os.environ["CUSTOM_API_KEY"] = config.custom_api_key
     if config.custom_base_url and not os.environ.get("CUSTOM_BASE_URL"):
         os.environ["CUSTOM_BASE_URL"] = config.custom_base_url
+    if config.ollama_base_url and not os.environ.get("OLLAMA_BASE_URL"):
+        os.environ["OLLAMA_BASE_URL"] = config.ollama_base_url
     if config.tavily_api_key and not os.environ.get("TAVILY_API_KEY"):
         os.environ["TAVILY_API_KEY"] = config.tavily_api_key

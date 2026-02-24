@@ -79,6 +79,7 @@ class TestEvoScientistConfig:
         assert config.max_iterations == 3
         assert config.show_thinking is True
         assert config.ui_backend == "rich"
+        assert config.ollama_base_url == ""
         assert config.imessage_enabled is False
         assert config.imessage_allowed_senders == ""
 
@@ -378,3 +379,19 @@ class TestApplyConfigToEnv:
 
         assert os.environ.get("ANTHROPIC_API_KEY") is None
         assert os.environ.get("OPENAI_API_KEY") is None
+
+    def test_ollama_base_url_applied(self, clean_env, monkeypatch):
+        """Test that ollama_base_url is applied to OLLAMA_BASE_URL env var."""
+        monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+        config = EvoScientistConfig(ollama_base_url="http://localhost:11434")
+        apply_config_to_env(config)
+
+        assert os.environ.get("OLLAMA_BASE_URL") == "http://localhost:11434"
+
+    def test_ollama_base_url_not_overridden(self, monkeypatch):
+        """Test that existing OLLAMA_BASE_URL env var is not overridden."""
+        monkeypatch.setenv("OLLAMA_BASE_URL", "http://existing:11434")
+        config = EvoScientistConfig(ollama_base_url="http://new:11434")
+        apply_config_to_env(config)
+
+        assert os.environ.get("OLLAMA_BASE_URL") == "http://existing:11434"

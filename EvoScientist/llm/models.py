@@ -122,6 +122,9 @@ def get_chat_model(
                 provider = "openai"
             elif model_id.startswith("gemini"):
                 provider = "google-genai"
+            elif model_id.startswith("ollama:"):
+                provider = "ollama"
+                model_id = model_id.removeprefix("ollama:")
             elif "/" in model_id:
                 provider = "nvidia"
             else:
@@ -149,6 +152,10 @@ def get_chat_model(
         if api_key:
             kwargs["api_key"] = api_key
         provider = "openai"
+    elif provider == "ollama":
+        base_url = os.environ.get("OLLAMA_BASE_URL", "")
+        if base_url:
+            kwargs["base_url"] = base_url
 
     # Auto-enable thinking for Anthropic models
     if provider == "anthropic" and "thinking" not in kwargs:
