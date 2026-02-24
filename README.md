@@ -269,7 +269,7 @@ We thank the authors for their valuable contributions to the open-source communi
 
 <p align="right"><a href="#top">🔝Back to top</a></p>
 
-## 🛠️ EvoScientist Team
+## 🧪 EvoScientist Team
 
 <table>
   <tbody>
