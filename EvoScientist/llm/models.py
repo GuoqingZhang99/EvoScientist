@@ -137,6 +137,10 @@ def _apply_auto_config(
     if provider == "google-genai":
         kwargs.setdefault("include_thoughts", True)
 
+    # Ollama: separate reasoning content from response for thinking models
+    if provider == "ollama" and "reasoning" not in kwargs:
+        kwargs["reasoning"] = True
+
 
 def get_chat_model(
     model: str | None = None,

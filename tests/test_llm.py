@@ -282,8 +282,8 @@ class TestOllamaProvider:
         assert "base_url" not in call_kwargs
 
     @patch("EvoScientist.llm.models.init_chat_model")
-    def test_no_thinking_for_ollama(self, mock_init, monkeypatch):
-        """Test that thinking/reasoning is not auto-enabled for Ollama models."""
+    def test_reasoning_auto_enabled_for_ollama(self, mock_init, monkeypatch):
+        """Test that reasoning is auto-enabled for Ollama models."""
         mock_init.return_value = "mock_model"
         monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
 
@@ -291,7 +291,18 @@ class TestOllamaProvider:
 
         call_kwargs = mock_init.call_args[1]
         assert "thinking" not in call_kwargs
-        assert "reasoning" not in call_kwargs
+        assert call_kwargs["reasoning"] is True
+
+    @patch("EvoScientist.llm.models.init_chat_model")
+    def test_reasoning_not_overridden_for_ollama(self, mock_init, monkeypatch):
+        """Test that explicit reasoning=False is not overridden for Ollama."""
+        mock_init.return_value = "mock_model"
+        monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
+
+        get_chat_model("llama3.1:8b", provider="ollama", reasoning=False)
+
+        call_kwargs = mock_init.call_args[1]
+        assert call_kwargs["reasoning"] is False
 
     def test_no_static_registry_entries(self):
         """Test that Ollama has no static registry entries (models detected dynamically)."""
