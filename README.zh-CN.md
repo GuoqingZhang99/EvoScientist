@@ -462,7 +462,14 @@ Jan Piotrowski, Wiktor Cupiał, Jakub Kaliski, Jakub Filipiuk, Xinhao Yi, Shuyu 
 
 我们欢迎各层次的开发者、研究者以及 AI 编程助手参与贡献。我们的 [贡献指南](./CONTRIBUTING.md) 同时面向人类和 AI Agent 编写，涵盖架构说明、设计模式、扩展指南和代码规范，帮助你安全高效地参与项目开发。
 
+### 📈 Star 趋势
+
+[![Star History Chart](https://api.star-history.com/svg?repos=EvoScientist/EvoScientist&type=date&legend=top-left)](https://www.star-history.com/#EvoScientist/EvoScientist&type=date&legend=top-left)
+
 ### 📝 引用
+
+如果您觉得我们的论文和代码对您的研究有帮助，请使用以下 BibTeX 引用：
+
 ```bibtex
 @article{evoscientist2026,
   title={EvoScientist: Towards Multi-Agent Evolving AI Scientists for End-to-End Scientific Discovery},
@@ -471,10 +478,6 @@ Jan Piotrowski, Wiktor Cupiał, Jakub Kaliski, Jakub Filipiuk, Xinhao Yi, Shuyu 
   year={2026}
 }
 ```
-
-### 📈 Star 趋势
-
-[![Star History Chart](https://api.star-history.com/svg?repos=EvoScientist/EvoScientist&type=date&legend=top-left)](https://www.star-history.com/#EvoScientist/EvoScientist&type=date&legend=top-left)
 
 <p align="right"><a href="#top">🔝回到顶部</a></p>
 

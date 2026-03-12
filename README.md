@@ -452,7 +452,14 @@ For any inquiries or collaboration opportunities, please contact: [**EvoScientis
 
 We welcome contributions from developers, researchers, and AI coding agents at all levels. Our [Contributing Guidelines](./CONTRIBUTING.md) are designed for both humans and AI agents — covering architecture, patterns, extension guides, and code standards to help you contribute safely and effectively.
 
+### 📈 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=EvoScientist/EvoScientist&type=date&legend=top-left)](https://www.star-history.com/#EvoScientist/EvoScientist&type=date&legend=top-left)
+
 ### 📝 Citation
+
+If you find our paper and code useful in your research and applications, please cite using this BibTeX:
+
 ```bibtex
 @article{evoscientist2026, 
   title={EvoScientist: Towards Multi-Agent Evolving AI Scientists for End-to-End Scientific Discovery}, 
@@ -461,10 +468,6 @@ We welcome contributions from developers, researchers, and AI coding agents at a
   year={2026} 
 }
 ```
-
-### 📈 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=EvoScientist/EvoScientist&type=date&legend=top-left)](https://www.star-history.com/#EvoScientist/EvoScientist&type=date&legend=top-left)
 
 <p align="right"><a href="#top">🔝Back to top</a></p>
 
