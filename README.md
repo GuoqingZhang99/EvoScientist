@@ -56,8 +56,8 @@ Moving beyond traditional human-in-the-loop systems, EvoScientist adopts a human
       </video>
     </td>
     <td align="center">
-      <video src="https://github.com/user-attachments/assets/068ea7f7-ec21-4029-9463-b0752f2a6f10" width="100%" autoplay loop muted playsinline>
-        <a href="https://github.com/user-attachments/assets/068ea7f7-ec21-4029-9463-b0752f2a6f10">View mobile demo</a>
+      <video src="https://github.com/user-attachments/assets/4919e6f4-e434-46c9-98c7-35d7482868a6" width="100%" autoplay loop muted playsinline>
+        <a href="https://github.com/user-attachments/assets/4919e6f4-e434-46c9-98c7-35d7482868a6">View mobile demo</a>
       </video>
     </td>
   </tr>
