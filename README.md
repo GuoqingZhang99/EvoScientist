@@ -67,14 +67,11 @@ Moving beyond traditional human-in-the-loop systems, EvoScientist adopts a human
 - **🧠 Persistent Memory** — Context, preferences, and findings survive across sessions.
 - **🌐 Multi-Provider** — Anthropic, OpenAI, Google, NVIDIA — one config to switch.
 - **📱 Multi-Channel** — CLI as the hub; Telegram, Slack, Feishu, WeChat, and more — one agent session.
-- **🔌 MCP & Skills** — Plug in MCP servers or install skills from GitHub on the fly.
 - **🔬 Scientific Workflow** — Intake → plan → execute → evaluate → write → verify.
+- **🔌 MCP & Skills** — Plug in MCP servers or install skills from GitHub on the fly.
 
-<p align="center">
-  <img src=".github/assets/EvoScientist_framework.png" alt="Framework" width="75%" />
-</p>
-
-> Powered by EvoScientist's multi-agent engine and installable [**EvoSkills**](https://github.com/EvoScientist/EvoSkills), the entire end-to-end research lifecycle is covered out of the box.
+> [!TIP]
+> Looking for ready-to-use research skills? Check out [**EvoSkills**](https://github.com/EvoScientist/EvoSkills) — Powered by EvoScientist's multi-agent engine and installable skills, the entire end-to-end research lifecycle is covered out of the box.
 
 ## 🔥 News
 - **[13 Mar 2026]** 🚀 [**EvoScientist**](https://github.com/EvoScientist/EvoScientist) officially debuts!
